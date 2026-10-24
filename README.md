@@ -4,7 +4,9 @@ Unofficial native **Windows x64 builds** of [Xodus](https://github.com/xodus-gam
 
 ## Download
 
-Open this repository's **Releases** page and download `Xodus-Windows-x64.zip`. Extract the ZIP to a folder before running it. The release also provides a SHA-256 checksum file.
+[Download the latest Windows ZIP](https://github.com/thebreenis/xodus-windows/releases/latest/download/Xodus-Windows-x64.zip) · [All releases](https://github.com/thebreenis/xodus-windows/releases)
+
+Extract `Xodus-Windows-x64.zip` to a folder before running it. The release also provides a SHA-256 checksum file.
 
 Rust, Visual Studio, and the GDK are build tools; you do not need them to run this Windows release.
 
