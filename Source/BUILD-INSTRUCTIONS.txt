@@ -1,0 +1,41 @@
+Rebuilding the Windows x64 executables
+
+Extract corresponding-source.zip, keeping its xodus-source and xodus-vendor folders together. The xodus-source directory contains the
+exact upstream commit 514dd56f360a4bdf12f4acde5148bac5ce5f957f and vendored
+Cargo dependencies. .cargo/config.toml selects the included sibling xodus-vendor directory.
+The archive also includes license-response-diagnostics.patch.
+
+Build tools used:
+- Rust stable 1.99.1, x86_64-pc-windows-msvc.
+- Microsoft Visual Studio Build Tools 2022 17.14.42, C++ workload.
+- CMake from the Build Tools installation.
+- Protocol Buffers compiler (protoc) 36.2 from protocolbuffers/protobuf releases.
+- OpenSSL Windows x64 development headers and libraries already present on
+  the build computer. Adapt OPENSSL_DIR/OPENSSL_LIB_DIR to your installation.
+
+From PowerShell in xodus-source, configure build tool paths, for example:
+
+$env:PROTOC = 'C:\path\to\protoc\bin\protoc.exe'
+$env:OPENSSL_DIR = 'C:\Program Files\OpenSSL-Win64'
+$env:OPENSSL_LIB_DIR = 'C:\Program Files\OpenSSL-Win64\lib\VC\x64\MD'
+$env:OPENSSL_INCLUDE_DIR = 'C:\Program Files\OpenSSL-Win64\include'
+$env:OPENSSL_STATIC = '0'
+$env:CMAKE = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+$env:PATH = (Split-Path $env:CMAKE) + ';' + $env:PATH
+cargo build --release -p xodus-cli --locked --offline
+
+The output is target\release\xodus-cli.exe (original upstream build).
+For the diagnostic build, apply the included patch to the source root:
+
+git apply license-response-diagnostics.patch
+cargo build --release -p xodus-cli --locked --offline
+
+Copy the second executable as xodus-cli-diagnostic.exe.
+The patch changes response-error diagnostics only, not license authorization.
+No game content, account credentials or license keys belong in this source.
+
+The Rust, Microsoft SDK, CMake, OpenSSL development and protoc tools are build
+prerequisites and are not bundled in the runtime release. Their own upstream
+download sites provide those tools. No bit-for-bit reproducibility claim is
+made: exact tool versions, paths and timestamps can affect the generated PE.
+

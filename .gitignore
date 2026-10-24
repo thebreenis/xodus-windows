@@ -1,0 +1,8 @@
+*.exe
+*.zip
+*.ron
+*.cik
+*.pfx
+*.pml
+.env
+target/

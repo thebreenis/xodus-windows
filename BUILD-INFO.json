@@ -1,0 +1,16 @@
+{
+  "project": "Xodus",
+  "upstream": "https://github.com/xodus-gaming/xodus",
+  "commit": "514dd56f360a4bdf12f4acde5148bac5ce5f957f",
+  "builtOn": "2026-10-25",
+  "target": "x86_64-pc-windows-msvc",
+  "rust": "1.99.1",
+  "cargo": "1.99.1",
+  "msvcBuildTools": "2022 17.14.42",
+  "artifacts": {
+    "xodus-cli.exe": "Unmodified upstream release build",
+    "xodus-cli-diagnostic.exe": "Same build plus Source/license-response-diagnostics.patch"
+  },
+  "tested": ["Native Windows build", "CLI help/version", "Microsoft login", "F1 content-license request reached Microsoft"],
+  "notEstablished": ["Fresh-machine prerequisite installation", "Successful F1 license acquisition or extraction", "Compatibility with other games"]
+}

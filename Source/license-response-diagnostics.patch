@@ -1,0 +1,69 @@
+diff --git a/crates/xodus/src/licensing/content.rs b/crates/xodus/src/licensing/content.rs
+index 2755f1b..c6155d5 100644
+--- a/crates/xodus/src/licensing/content.rs
++++ b/crates/xodus/src/licensing/content.rs
+@@ -16,6 +16,14 @@ pub enum LicenseContentError {
+     #[error("request error: {0}")]
+     Request(#[from] reqwest::Error),
+ 
++    #[error("license response could not be decoded: HTTP {status}, content-type {content_type}, {bytes} bytes; {diagnostic}")]
++    InvalidResponse {
++        status: u16,
++        content_type: String,
++        bytes: usize,
++        diagnostic: String,
++    },
++
+     /// The account has no entitlement for the requested content (not owned, or
+     /// not covered by the account's current subscription tier).
+     #[error("not entitled to this content: {description}")]
+@@ -60,7 +68,48 @@ pub async fn get_license_content(
+         .send()
+         .await?;
+ 
+-    let content_res = response.json::<LicenseContentResponse>().await?;
++    // Describe failed responses without printing bodies, tokens or license keys.
++    let status = response.status().as_u16();
++    let content_type = response.headers().get(reqwest::header::CONTENT_TYPE)
++        .and_then(|v| v.to_str().ok()).unwrap_or("unknown").to_owned();
++    let body = response.bytes().await?;
++    let parsed = serde_json::from_slice::<LicenseContentResponse>(&body);
++    let content_res = parsed.map_err(|err| {
++        let mut diagnostic = format!("JSON/schema error category: {:?}, line {}, column {}", err.classify(), err.line(), err.column());
++        if let Ok(value) = serde_json::from_slice::<serde_json::Value>(&body) {
++            let mut fields = Vec::new();
++            for name in ["license", "satisfactionFailure", "error", "code", "message", "description", "details"] {
++                if let Some(v) = value.get(name) {
++                    let kind = match v {
++                        serde_json::Value::Null => "null",
++                        serde_json::Value::Bool(_) => "boolean",
++                        serde_json::Value::Number(_) => "number",
++                        serde_json::Value::String(_) => "string",
++                        serde_json::Value::Array(_) => "array",
++                        serde_json::Value::Object(_) => "object",
++                    };
++                    fields.push(format!("{name}:{kind}"));
++                }
++            }
++            diagnostic.push_str(&format!("; known fields [{}]", fields.join(", ")));
++            if let Some(v) = value.get("license") {
++                if let Err(e) = serde_json::from_value::<LicenseContent>(v.clone()) {
++                    let message = e.to_string();
++                    if ["missing field `keys`", "missing field `leases`", "missing field `value`"].contains(&message.as_str()) {
++                        diagnostic.push_str(&format!("; license schema: {message}"));
++                    } else {
++                        diagnostic.push_str("; license schema type mismatch");
++                    }
++                }
++            }
++            for location in [&value, &value["error"], &value["satisfactionFailure"]] {
++                if let Some(code) = location.get("code").and_then(|v| v.as_i64()) {
++                    diagnostic.push_str(&format!("; service numeric code: {code}"));
++                }
++            }
++        }
++        LicenseContentError::InvalidResponse {status, content_type, bytes: body.len(), diagnostic}
++    })?;
+     let content = match content_res {
+         LicenseContentResponse::Success { license } => license,
+         LicenseContentResponse::SatisfactionFailure {
